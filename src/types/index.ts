@@ -83,7 +83,31 @@ export interface MainPageInput {
   path: string;
 }
 
+/** 메인 노출 사례 — 네이버 순위 확인용 */
+export interface NaverShowcase {
+  id: string;
+  keyword: string;
+  companyName: string;
+  /** 화면에 표시할 등록일 */
+  displayDate: string;
+  /** 네이버 노출 순위 (예: 1) */
+  rank: number;
+  /** 비어 있으면 키워드로 네이버 검색 URL 자동 생성 */
+  naverSearchUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NaverShowcaseInput {
+  keyword: string;
+  companyName: string;
+  displayDate: string;
+  rank?: number;
+  naverSearchUrl?: string;
+}
+
 export interface Database {
   keywords: KeywordEntry[];
   mainPages: MainPageLink[];
+  naverShowcases: NaverShowcase[];
 }

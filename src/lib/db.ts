@@ -6,13 +6,14 @@ import {
   shouldUseBlobStorage,
   StorageNotConfiguredError,
 } from "@/lib/storage";
-import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink } from "@/types";
+import { MAIN_NAVER_SHOWCASE_MAX } from "@/lib/constants";
+import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink, NaverShowcase, NaverShowcaseInput } from "@/types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "keywords.json");
 const BLOB_FILENAME = "keywords.json";
 
-const DEFAULT_DB: Database = { keywords: [], mainPages: [] };
+const DEFAULT_DB: Database = { keywords: [], mainPages: [], naverShowcases: [] };
 
 function normalizeDb(db: Database): Database {
   return {
@@ -20,6 +21,16 @@ function normalizeDb(db: Database): Database {
       normalizeEntry(k as KeywordEntry & { companyName?: string; pagePrompt?: string })
     ),
     mainPages: db.mainPages ?? [],
+    naverShowcases: (db.naverShowcases ?? []).map(normalizeNaverShowcase),
+  };
+}
+
+function normalizeNaverShowcase(entry: NaverShowcase): NaverShowcase {
+  return {
+    ...entry,
+    companyName: entry.companyName ?? "",
+    rank: entry.rank ?? 1,
+    naverSearchUrl: entry.naverSearchUrl ?? "",
   };
 }
 
@@ -549,6 +560,99 @@ export async function getAllMainPages(): Promise<MainPageLink[]> {
   return db.mainPages.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+}
+
+export async function getAllNaverShowcases(): Promise<NaverShowcase[]> {
+  const db = await readDb();
+  return db.naverShowcases.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export async function getNaverShowcasesForMain(
+  limit = MAIN_NAVER_SHOWCASE_MAX
+): Promise<NaverShowcase[]> {
+  const all = await getAllNaverShowcases();
+  return all.slice(0, limit);
+}
+
+export async function createNaverShowcase(input: NaverShowcaseInput): Promise<NaverShowcase> {
+  const db = await readDb();
+
+  if (db.naverShowcases.length >= MAIN_NAVER_SHOWCASE_MAX) {
+    throw new Error(`메인 노출 사례는 최대 ${MAIN_NAVER_SHOWCASE_MAX}개까지 등록할 수 있습니다.`);
+  }
+
+  if (!input.keyword?.trim()) {
+    throw new Error("키워드는 필수입니다.");
+  }
+  if (!input.companyName?.trim()) {
+    throw new Error("업체명은 필수입니다.");
+  }
+  if (!input.displayDate?.trim()) {
+    throw new Error("등록일은 필수입니다.");
+  }
+
+  const now = new Date().toISOString();
+  const entry: NaverShowcase = {
+    id: createId(),
+    keyword: input.keyword.trim(),
+    companyName: input.companyName.trim(),
+    displayDate: input.displayDate.trim(),
+    rank: Math.max(1, Math.floor(input.rank ?? 1) || 1),
+    naverSearchUrl: input.naverSearchUrl?.trim() ?? "",
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  db.naverShowcases.push(entry);
+  await writeDb(db);
+  return entry;
+}
+
+export async function updateNaverShowcase(
+  id: string,
+  input: Partial<NaverShowcaseInput>
+): Promise<NaverShowcase> {
+  const db = await readDb();
+  const index = db.naverShowcases.findIndex((s) => s.id === id);
+
+  if (index === -1) {
+    throw new Error("노출 사례를 찾을 수 없습니다.");
+  }
+
+  const current = db.naverShowcases[index];
+  const updated: NaverShowcase = {
+    ...current,
+    keyword: input.keyword?.trim() ?? current.keyword,
+    companyName: input.companyName?.trim() ?? current.companyName,
+    displayDate: input.displayDate?.trim() ?? current.displayDate,
+    rank:
+      input.rank !== undefined
+        ? Math.max(1, Math.floor(input.rank) || 1)
+        : current.rank,
+    naverSearchUrl:
+      input.naverSearchUrl !== undefined
+        ? input.naverSearchUrl.trim()
+        : current.naverSearchUrl,
+    updatedAt: new Date().toISOString(),
+  };
+
+  db.naverShowcases[index] = updated;
+  await writeDb(db);
+  return updated;
+}
+
+export async function deleteNaverShowcase(id: string): Promise<void> {
+  const db = await readDb();
+  const index = db.naverShowcases.findIndex((s) => s.id === id);
+
+  if (index === -1) {
+    throw new Error("노출 사례를 찾을 수 없습니다.");
+  }
+
+  db.naverShowcases.splice(index, 1);
+  await writeDb(db);
 }
 
 export async function createMainPage(input: MainPageInput): Promise<MainPageLink> {

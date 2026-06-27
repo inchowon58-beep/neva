@@ -1,7 +1,8 @@
 import MainPageSwitcher from "@/components/MainPageSwitcher";
 import LandingPageList from "@/components/LandingPageList";
+import NaverShowcaseSection from "@/components/NaverShowcaseSection";
 import { MAIN_TITLE, RECENT_KEYWORDS_LIMIT } from "@/lib/constants";
-import { getAllKeywords, getAllMainPages } from "@/lib/db";
+import { getAllKeywords, getAllMainPages, getNaverShowcasesForMain } from "@/lib/db";
 import { ensureSeedData } from "@/lib/seed";
 
 export default async function HomePage() {
@@ -9,6 +10,7 @@ export default async function HomePage() {
   const allKeywords = await getAllKeywords();
   const keywords = allKeywords.slice(0, RECENT_KEYWORDS_LIMIT);
   const mainPages = await getAllMainPages();
+  const naverShowcases = await getNaverShowcasesForMain();
 
   return (
     <main>
@@ -31,6 +33,8 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
+
+      <NaverShowcaseSection showcases={naverShowcases} />
 
       <section id="landing-list" className="mx-auto max-w-6xl scroll-mt-6 px-4 py-16">
         <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

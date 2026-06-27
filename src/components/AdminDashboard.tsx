@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import AdminKeywordList, { type KeywordListItem } from "@/components/AdminKeywordList";
+import AdminNaverShowcase from "@/components/AdminNaverShowcase";
 import AdminPermanentDelete from "@/components/AdminPermanentDelete";
 import { CATTERY_PRESET, formatDate } from "@/lib/constants";
 import { DEFAULT_PROMPT } from "@/lib/gemini";
@@ -465,6 +466,8 @@ export default function AdminDashboard() {
       />
 
       <AdminPermanentDelete onMessage={showMessage} />
+
+      <AdminNaverShowcase onMessage={showMessage} />
 
       {/* Main Page Links */}
       <form

@@ -8,6 +8,9 @@ export const ADMIN_KEYWORD_LIST_MAX = 1000;
 export const ADMIN_KEYWORD_PAGE_SIZE = 15;
 export const ADMIN_BULK_AI_BATCH_SIZE = 10;
 
+/** 메인 네이버 노출 사례 */
+export const MAIN_NAVER_SHOWCASE_MAX = 5;
+
 /** 관리자 — 캐터리 프리셋 (업체명·이미지·홈페이지·전화) */
 export const CATTERY_PRESET = {
   companyName: "캐터리",
