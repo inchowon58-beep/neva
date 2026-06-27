@@ -2,22 +2,48 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createKeyword,
   deleteKeyword,
+  deleteKeywordsBulk,
   getAllKeywords,
   getKeywordById,
   updateKeyword,
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
 import { notifyKeywordIndexNow } from "@/lib/naver-indexnow";
+import { ADMIN_KEYWORD_LIST_MAX } from "@/lib/constants";
 import { storageErrorMessage } from "@/lib/storage";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const authenticated = await isAuthenticated();
   if (!authenticated) {
     return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
   }
 
-  const keywords = await getAllKeywords();
-  return NextResponse.json({ keywords });
+  const lite = request.nextUrl.searchParams.get("lite") === "1";
+  const all = await getAllKeywords();
+  const keywords = all.slice(0, ADMIN_KEYWORD_LIST_MAX);
+
+  if (lite) {
+    return NextResponse.json({
+      keywords: keywords.map((k) => ({
+        id: k.id,
+        slug: k.slug,
+        keyword: k.keyword,
+        companyName: k.companyName,
+        imageUrl: k.imageUrl,
+        homepageUrl: k.homepageUrl,
+        phone: k.phone,
+        pagePrompt: k.pagePrompt,
+        contentGeneratedAt: k.contentGeneratedAt,
+        indexNowSubmittedAt: k.indexNowSubmittedAt,
+        createdAt: k.createdAt,
+        updatedAt: k.updatedAt,
+        hasContent: Boolean(k.generatedContent || k.contentGeneratedAt),
+      })),
+      total: all.length,
+    });
+  }
+
+  return NextResponse.json({ keywords, total: all.length });
 }
 
 export async function POST(request: NextRequest) {

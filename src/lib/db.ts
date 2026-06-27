@@ -384,6 +384,22 @@ export async function deleteKeyword(id: string): Promise<void> {
   await writeDb(db);
 }
 
+export async function deleteKeywordsBulk(ids: string[]): Promise<number> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return 0;
+
+  const db = await readDb();
+  const idSet = new Set(unique);
+  const before = db.keywords.length;
+  db.keywords = db.keywords.filter((k) => !idSet.has(k.id));
+  const removed = before - db.keywords.length;
+
+  if (removed > 0) {
+    await writeDb(db);
+  }
+  return removed;
+}
+
 export async function saveGeneratedContent(
   id: string,
   content: GeneratedContent

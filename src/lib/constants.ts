@@ -3,6 +3,11 @@ export const MAIN_TITLE = "네바마스커레이드";
 export const RECENT_KEYWORDS_LIMIT = 50;
 export const SAMPLE_SLUG = "sample-design";
 
+/** 관리자 키워드 목록 */
+export const ADMIN_KEYWORD_LIST_MAX = 1000;
+export const ADMIN_KEYWORD_PAGE_SIZE = 15;
+export const ADMIN_BULK_AI_BATCH_SIZE = 10;
+
 /** 관리자 — 캐터리 프리셋 (업체명·이미지·홈페이지·전화) */
 export const CATTERY_PRESET = {
   companyName: "캐터리",
