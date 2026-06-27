@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SAMPLE_SLUG, formatDate } from "@/lib/constants";
 import { formatNaverRank, resolveNaverSearchUrl } from "@/lib/naver-search";
 import type { NaverShowcase } from "@/types";
@@ -52,7 +53,22 @@ interface LandingPageListProps {
   showcases: NaverShowcase[];
 }
 
-export default function LandingPageList({ showcases }: LandingPageListProps) {
+export default function LandingPageList({ showcases: initialShowcases }: LandingPageListProps) {
+  const [showcases, setShowcases] = useState(initialShowcases);
+
+  useEffect(() => {
+    fetch("/api/public/showcases", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.showcases)) {
+          setShowcases(data.showcases);
+        }
+      })
+      .catch(() => {
+        /* SSR 데이터 유지 */
+      });
+  }, []);
+
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
       <Link

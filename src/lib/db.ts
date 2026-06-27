@@ -185,11 +185,35 @@ async function readDb(): Promise<Database> {
 }
 
 async function writeDb(db: Database): Promise<void> {
+  let normalized = normalizeDb(db);
+
   if (shouldUseBlobStorage()) {
-    await writeToBlob(db);
+    try {
+      const latest = await readFromBlob();
+      if (latest) {
+        const latestNorm = normalizeDb(latest);
+        if (latestNorm.naverShowcases.length > normalized.naverShowcases.length) {
+          normalized = {
+            ...normalized,
+            naverShowcases: latestNorm.naverShowcases,
+          };
+        }
+        normalized = {
+          ...normalized,
+          settings: normalizeSettings({
+            mainShowcaseDisplayCount:
+              normalized.settings?.mainShowcaseDisplayCount ??
+              latestNorm.settings?.mainShowcaseDisplayCount,
+          }),
+        };
+      }
+    } catch {
+      // 최신 Blob 병합 실패 시 기존 데이터로 저장
+    }
+    await writeToBlob(normalized);
     return;
   }
-  await writeToFile(db);
+  await writeToFile(normalized);
 }
 
 export function slugify(keyword: string): string {
@@ -602,9 +626,15 @@ export async function getAllNaverShowcases(): Promise<NaverShowcase[]> {
 }
 
 export async function getNaverShowcasesForMain(): Promise<NaverShowcase[]> {
-  const settings = await getSiteSettings();
-  const all = await getAllNaverShowcases();
-  return all.slice(0, settings.mainShowcaseDisplayCount);
+  const db = await readDb();
+  const limit = db.settings?.mainShowcaseDisplayCount ?? DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT;
+  const count = Math.min(
+    MAX_MAIN_SHOWCASE_DISPLAY_COUNT,
+    Math.max(1, Math.floor(limit) || DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT)
+  );
+  return [...db.naverShowcases]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, count);
 }
 
 export async function createNaverShowcase(input: NaverShowcaseInput): Promise<NaverShowcase> {
