@@ -6,14 +6,19 @@ import {
   shouldUseBlobStorage,
   StorageNotConfiguredError,
 } from "@/lib/storage";
-import { MAIN_NAVER_SHOWCASE_MAX } from "@/lib/constants";
-import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink, NaverShowcase, NaverShowcaseInput } from "@/types";
+import { MAIN_NAVER_SHOWCASE_REGISTER_MAX, DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT, MAX_MAIN_SHOWCASE_DISPLAY_COUNT } from "@/lib/constants";
+import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink, NaverShowcase, NaverShowcaseInput, SiteSettings } from "@/types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "keywords.json");
 const BLOB_FILENAME = "keywords.json";
 
-const DEFAULT_DB: Database = { keywords: [], mainPages: [], naverShowcases: [] };
+const DEFAULT_DB: Database = {
+  keywords: [],
+  mainPages: [],
+  naverShowcases: [],
+  settings: { mainShowcaseDisplayCount: DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT },
+};
 
 function normalizeDb(db: Database): Database {
   return {
@@ -22,6 +27,17 @@ function normalizeDb(db: Database): Database {
     ),
     mainPages: db.mainPages ?? [],
     naverShowcases: (db.naverShowcases ?? []).map(normalizeNaverShowcase),
+    settings: normalizeSettings(db.settings),
+  };
+}
+
+function normalizeSettings(settings?: SiteSettings): SiteSettings {
+  const count = settings?.mainShowcaseDisplayCount ?? DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT;
+  return {
+    mainShowcaseDisplayCount: Math.min(
+      MAX_MAIN_SHOWCASE_DISPLAY_COUNT,
+      Math.max(1, Math.floor(count) || DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT)
+    ),
   };
 }
 
@@ -562,6 +578,22 @@ export async function getAllMainPages(): Promise<MainPageLink[]> {
   );
 }
 
+export async function getSiteSettings(): Promise<SiteSettings> {
+  const db = await readDb();
+  return db.settings ?? normalizeSettings();
+}
+
+export async function updateMainShowcaseDisplayCount(count: number): Promise<SiteSettings> {
+  const db = await readDb();
+  const normalized = Math.min(
+    MAX_MAIN_SHOWCASE_DISPLAY_COUNT,
+    Math.max(1, Math.floor(count) || DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT)
+  );
+  db.settings = { mainShowcaseDisplayCount: normalized };
+  await writeDb(db);
+  return db.settings;
+}
+
 export async function getAllNaverShowcases(): Promise<NaverShowcase[]> {
   const db = await readDb();
   return db.naverShowcases.sort(
@@ -569,18 +601,19 @@ export async function getAllNaverShowcases(): Promise<NaverShowcase[]> {
   );
 }
 
-export async function getNaverShowcasesForMain(
-  limit = MAIN_NAVER_SHOWCASE_MAX
-): Promise<NaverShowcase[]> {
+export async function getNaverShowcasesForMain(): Promise<NaverShowcase[]> {
+  const settings = await getSiteSettings();
   const all = await getAllNaverShowcases();
-  return all.slice(0, limit);
+  return all.slice(0, settings.mainShowcaseDisplayCount);
 }
 
 export async function createNaverShowcase(input: NaverShowcaseInput): Promise<NaverShowcase> {
   const db = await readDb();
 
-  if (db.naverShowcases.length >= MAIN_NAVER_SHOWCASE_MAX) {
-    throw new Error(`메인 노출 사례는 최대 ${MAIN_NAVER_SHOWCASE_MAX}개까지 등록할 수 있습니다.`);
+  if (db.naverShowcases.length >= MAIN_NAVER_SHOWCASE_REGISTER_MAX) {
+    throw new Error(
+      `노출 사례는 최대 ${MAIN_NAVER_SHOWCASE_REGISTER_MAX}개까지 등록할 수 있습니다.`
+    );
   }
 
   if (!input.keyword?.trim()) {

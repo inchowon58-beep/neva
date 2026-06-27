@@ -1,5 +1,3 @@
-import type { KeywordEntry } from "@/types";
-
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /** UTC Date → KST 시각을 UTC getter로 읽을 수 있는 Date */
@@ -37,16 +35,15 @@ export function seededInt(seed: string, min: number, max: number): number {
   return min + Math.floor(seededUnit(seed) * (max - min + 1));
 }
 
-export function countTodayPublishRegistrations(
-  keywords: KeywordEntry[],
-  now = new Date()
-): number {
-  const today = kstDateKey(now);
-  return keywords.filter((k) => kstDateKey(new Date(k.createdAt)) === today).length;
-}
-
 export function getYesterdayPublishCount(now = new Date()): number {
   return seededInt(`${kstYesterdayKey(now)}-publish`, 500, 1200);
+}
+
+/** 페이지 로드 시 방문자 수를 목표보다 약간 낮게 시작 */
+export function getTodayVisitorStartOffset(now = new Date()): number {
+  const cap = getTodayVisitorCount(now);
+  if (cap <= 0) return 0;
+  return seededInt(`${kstDateKey(now)}-vis-start`, 3, Math.min(25, Math.floor(cap * 0.04)));
 }
 
 function smoothDayProgress(now = new Date()): number {

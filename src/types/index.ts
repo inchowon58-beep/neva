@@ -106,8 +106,14 @@ export interface NaverShowcaseInput {
   naverSearchUrl?: string;
 }
 
+export interface SiteSettings {
+  /** 메인 「추가된 랜딩페이지 정보」에 표시할 노출 사례 개수 (샘플 제외) */
+  mainShowcaseDisplayCount: number;
+}
+
 export interface Database {
   keywords: KeywordEntry[];
   mainPages: MainPageLink[];
   naverShowcases: NaverShowcase[];
+  settings?: SiteSettings;
 }

@@ -3,6 +3,7 @@ import {
   createNaverShowcase,
   deleteNaverShowcase,
   getAllNaverShowcases,
+  getSiteSettings,
   updateNaverShowcase,
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
@@ -15,7 +16,8 @@ export async function GET() {
   }
 
   const showcases = await getAllNaverShowcases();
-  return NextResponse.json({ showcases });
+  const settings = await getSiteSettings();
+  return NextResponse.json({ showcases, settings });
 }
 
 export async function POST(request: NextRequest) {
