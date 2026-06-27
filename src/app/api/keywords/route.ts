@@ -6,6 +6,7 @@ import {
   updateKeyword,
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
+import { notifyLandingPageIndexNowSafe } from "@/lib/naver-indexnow";
 
 export async function GET() {
   const authenticated = await isAuthenticated();
@@ -40,7 +41,9 @@ export async function POST(request: NextRequest) {
       pagePrompt: pagePrompt || "",
     });
 
-    return NextResponse.json({ keyword: entry }, { status: 201 });
+    const indexNow = await notifyLandingPageIndexNowSafe(entry.slug);
+
+    return NextResponse.json({ keyword: entry, indexNow }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "등록 실패";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -69,7 +72,8 @@ export async function PUT(request: NextRequest) {
       phone,
       pagePrompt,
     });
-    return NextResponse.json({ keyword: entry });
+    const indexNow = await notifyLandingPageIndexNowSafe(entry.slug);
+    return NextResponse.json({ keyword: entry, indexNow });
   } catch (error) {
     const message = error instanceof Error ? error.message : "수정 실패";
     return NextResponse.json({ error: message }, { status: 400 });

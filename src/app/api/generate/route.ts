@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getKeywordById, saveGeneratedContent } from "@/lib/db";
 import { generateLandingContent, getDefaultContent } from "@/lib/gemini";
 import { isAuthenticated } from "@/lib/auth";
+import { notifyLandingPageIndexNowSafe } from "@/lib/naver-indexnow";
 
 export async function POST(request: NextRequest) {
   const authenticated = await isAuthenticated();
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
     }
 
     const updated = await saveGeneratedContent(id, content);
-    return NextResponse.json({ keyword: updated });
+    const indexNow = await notifyLandingPageIndexNowSafe(updated.slug);
+    return NextResponse.json({ keyword: updated, indexNow });
   } catch (error) {
     const message = error instanceof Error ? error.message : "콘텐츠 생성 실패";
     return NextResponse.json({ error: message }, { status: 500 });

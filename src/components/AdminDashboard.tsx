@@ -26,6 +26,19 @@ const emptyForm: KeywordFormData = {
 
 const emptyMainPageForm = { keyword: "", path: "" };
 
+interface IndexNowResponse {
+  ok?: boolean;
+  skipped?: boolean;
+  error?: string;
+  submitted?: number;
+}
+
+function indexNowSuffix(indexNow?: IndexNowResponse | null): string {
+  if (!indexNow || indexNow.skipped) return "";
+  if (indexNow.ok) return " · 네이버 IndexNow 알림 완료";
+  return ` · IndexNow 실패: ${indexNow.error || "알 수 없음"}`;
+}
+
 export default function AdminDashboard() {
   const [keywords, setKeywords] = useState<KeywordEntry[]>([]);
   const [mainPages, setMainPages] = useState<MainPageLink[]>([]);
@@ -36,6 +49,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [indexNowLoading, setIndexNowLoading] = useState(false);
 
   const fetchKeywords = async () => {
     const [kwRes, mpRes] = await Promise.all([
@@ -83,7 +97,7 @@ export default function AdminDashboard() {
       if (!editingId && kw && form.keyword.trim() !== kw.keyword) {
         msg += ` 중복 키워드 → '${kw.keyword}' (슬러그: ${kw.slug})`;
       }
-      showMessage(msg);
+      showMessage(msg + indexNowSuffix(data.indexNow));
       setForm(emptyForm);
       setEditingId(null);
       fetchKeywords();
@@ -126,11 +140,25 @@ export default function AdminDashboard() {
     setGeneratingId(null);
 
     if (res.ok) {
-      showMessage("Gemini AI 콘텐츠가 생성되었습니다.");
+      const data = await res.json();
+      showMessage("Gemini AI 콘텐츠가 생성되었습니다." + indexNowSuffix(data.indexNow));
       fetchKeywords();
     } else {
       const data = await res.json();
       showMessage(data.error || "콘텐츠 생성 실패");
+    }
+  };
+
+  const handleIndexNowBulk = async () => {
+    setIndexNowLoading(true);
+    const res = await fetch("/api/indexnow", { method: "POST" });
+    const data = await res.json();
+    setIndexNowLoading(false);
+
+    if (res.ok && data.success) {
+      showMessage(`네이버 IndexNow 일괄 전송 완료 (${data.urlCount}개 URL)`);
+    } else {
+      showMessage(data.error || data.indexNow?.error || "IndexNow 전송 실패");
     }
   };
 
@@ -202,7 +230,15 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">키워드 관리</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleIndexNowBulk}
+            disabled={indexNowLoading}
+            className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+          >
+            {indexNowLoading ? "IndexNow 전송 중..." : "네이버 IndexNow 일괄 전송"}
+          </button>
           <Link
             href="/"
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
@@ -241,7 +277,7 @@ export default function AdminDashboard() {
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="mt-1 text-xs text-slate-500">
-              등록 시 자동으로 /landing/[slug] URL이 생성됩니다.
+              등록 시 자동으로 /landing/[slug] URL이 생성되며, IndexNow 설정 시 네이버에 수집 알림이 전송됩니다.
             </p>
           </div>
           <div>
