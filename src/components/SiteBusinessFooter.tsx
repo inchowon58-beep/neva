@@ -15,6 +15,7 @@ export default function SiteBusinessFooter({ variant = "light" }: SiteBusinessFo
         {BUSINESS_INFO.companyName}
       </p>
       <p>법인등록번호 {BUSINESS_INFO.corpRegistration}</p>
+      <p>대표 {BUSINESS_INFO.representative}</p>
       <p>{BUSINESS_INFO.address}</p>
       <p>
         <a

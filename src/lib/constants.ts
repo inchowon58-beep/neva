@@ -25,6 +25,7 @@ export const BUSINESS_INFO = {
   corpRegistration: "224-87-00683",
   address: "경기도 부천시 길주로 246 2층",
   mainSiteUrl: "http://www.dmcmusic.co.kr",
+  representative: "조춘원",
   copyrightYear: 2017,
 } as const;
 

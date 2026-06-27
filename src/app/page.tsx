@@ -1,7 +1,11 @@
 import MainPageSwitcher from "@/components/MainPageSwitcher";
 import LandingPageList from "@/components/LandingPageList";
-import NaverShowcaseSection from "@/components/NaverShowcaseSection";
+import MainStatsBanner from "@/components/MainStatsBanner";
 import { MAIN_TITLE, RECENT_KEYWORDS_LIMIT } from "@/lib/constants";
+import {
+  countTodayPublishRegistrations,
+  getYesterdayPublishCount,
+} from "@/lib/main-stats";
 import { getAllKeywords, getAllMainPages, getNaverShowcasesForMain } from "@/lib/db";
 import { ensureSeedData } from "@/lib/seed";
 
@@ -11,6 +15,8 @@ export default async function HomePage() {
   const keywords = allKeywords.slice(0, RECENT_KEYWORDS_LIMIT);
   const mainPages = await getAllMainPages();
   const naverShowcases = await getNaverShowcasesForMain();
+  const todayPublishCount = countTodayPublishRegistrations(allKeywords);
+  const yesterdayPublishCount = getYesterdayPublishCount();
 
   return (
     <main>
@@ -34,7 +40,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <NaverShowcaseSection showcases={naverShowcases} />
+      <MainStatsBanner
+        todayPublishCount={todayPublishCount}
+        yesterdayPublishCount={yesterdayPublishCount}
+      />
 
       <section id="landing-list" className="mx-auto max-w-6xl scroll-mt-6 px-4 py-16">
         <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -44,7 +53,7 @@ export default async function HomePage() {
         <h2 className="mb-8 text-2xl font-bold text-slate-900">
           추가된 랜딩페이지 정보(최근 50개)
         </h2>
-        <LandingPageList keywords={keywords} />
+        <LandingPageList keywords={keywords} showcases={naverShowcases} />
       </section>
     </main>
   );
