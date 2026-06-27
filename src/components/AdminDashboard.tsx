@@ -31,10 +31,14 @@ interface IndexNowResponse {
   skipped?: boolean;
   error?: string;
   submitted?: number;
+  skippedCount?: number;
+  message?: string;
 }
 
 function indexNowSuffix(indexNow?: IndexNowResponse | null): string {
-  if (!indexNow || indexNow.skipped) return "";
+  if (!indexNow) return "";
+  if (indexNow.skipped && indexNow.message) return ` · ${indexNow.message}`;
+  if (indexNow.skipped) return "";
   if (indexNow.ok) return " · 네이버 IndexNow 알림 완료";
   return ` · IndexNow 실패: ${indexNow.error || "알 수 없음"}`;
 }
@@ -156,7 +160,15 @@ export default function AdminDashboard() {
     setIndexNowLoading(false);
 
     if (res.ok && data.success) {
-      showMessage(`네이버 IndexNow 일괄 전송 완료 (${data.urlCount}개 URL)`);
+      const sent = data.urlCount ?? 0;
+      const skipped = data.skippedCount ?? 0;
+      if (sent === 0 && skipped > 0) {
+        showMessage(`IndexNow: 전송 대상 없음 (${skipped}개는 24시간 내 이미 전송됨)`);
+      } else {
+        showMessage(
+          `네이버 IndexNow 일괄 전송 완료 (${sent}개 전송${skipped > 0 ? ` · ${skipped}개 생략` : ""})`
+        );
+      }
     } else {
       showMessage(data.error || data.indexNow?.error || "IndexNow 전송 실패");
     }
@@ -237,7 +249,7 @@ export default function AdminDashboard() {
             disabled={indexNowLoading}
             className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
           >
-            {indexNowLoading ? "IndexNow 전송 중..." : "네이버 IndexNow 일괄 전송"}
+            {indexNowLoading ? "IndexNow 전송 중..." : "IndexNow 일괄 전송 (미전송분)"}
           </button>
           <Link
             href="/"
@@ -258,6 +270,22 @@ export default function AdminDashboard() {
         <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div>
       )}
 
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900">
+        <p className="font-semibold text-emerald-800">네이버 IndexNow (자동 수집 알림)</p>
+        <ul className="mt-2 list-inside list-disc space-y-1 text-emerald-900/90">
+          <li>
+            <strong>새 키워드 등록</strong> · <strong>AI 콘텐츠 생성</strong> 시 자동 전송 (별도
+            일괄전송 불필요)
+          </li>
+          <li>같은 URL은 <strong>24시간 내 재전송하지 않음</strong> (매일 반복 불필요)</li>
+          <li>수집·검색 노출은 네이버 처리에 <strong>며칠~수 주</strong> 걸릴 수 있음</li>
+          <li>
+            「일괄 전송 완료」= IndexNow 연동 성공 · <strong>초기 1회</strong> 또는 미전송 페이지
+            보충용
+          </li>
+        </ul>
+      </div>
+
       {/* Registration Form */}
       <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold">
@@ -277,7 +305,8 @@ export default function AdminDashboard() {
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="mt-1 text-xs text-slate-500">
-              등록 시 자동으로 /landing/[slug] URL이 생성되며, IndexNow 설정 시 네이버에 수집 알림이 전송됩니다.
+              등록·AI 생성 시 IndexNow로 네이버에 자동 알림됩니다. 슬러그만 바뀔 때만 수정 시
+              재전송됩니다.
             </p>
           </div>
           <div>

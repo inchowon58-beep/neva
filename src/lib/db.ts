@@ -58,6 +58,7 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
     ...entry,
     companyName: entry.companyName ?? "",
     pagePrompt: entry.pagePrompt ?? "",
+    indexNowSubmittedAt: entry.indexNowSubmittedAt ?? null,
   };
 }
 
@@ -188,6 +189,7 @@ export async function createKeyword(input: KeywordInput): Promise<KeywordEntry> 
     pagePrompt: input.pagePrompt.trim(),
     generatedContent: null,
     contentGeneratedAt: null,
+    indexNowSubmittedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -280,6 +282,23 @@ export async function saveGeneratedContent(
 export async function getAllSlugs(): Promise<string[]> {
   const db = await readDb();
   return db.keywords.map((k) => k.slug);
+}
+
+export async function getAllKeywordsRaw(): Promise<KeywordEntry[]> {
+  const db = await readDb();
+  return db.keywords;
+}
+
+export async function markIndexNowSubmitted(id: string): Promise<void> {
+  const db = await readDb();
+  const index = db.keywords.findIndex((k) => k.id === id);
+  if (index === -1) return;
+
+  db.keywords[index] = {
+    ...db.keywords[index],
+    indexNowSubmittedAt: new Date().toISOString(),
+  };
+  await writeDb(db);
 }
 
 export async function seedDefaultKeywords(): Promise<void> {

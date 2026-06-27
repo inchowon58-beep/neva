@@ -3,10 +3,11 @@ import {
   createKeyword,
   deleteKeyword,
   getAllKeywords,
+  getKeywordById,
   updateKeyword,
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
-import { notifyLandingPageIndexNowSafe } from "@/lib/naver-indexnow";
+import { notifyKeywordIndexNow } from "@/lib/naver-indexnow";
 
 export async function GET() {
   const authenticated = await isAuthenticated();
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       pagePrompt: pagePrompt || "",
     });
 
-    const indexNow = await notifyLandingPageIndexNowSafe(entry.slug);
+    const indexNow = await notifyKeywordIndexNow(entry, "create");
 
     return NextResponse.json({ keyword: entry, indexNow }, { status: 201 });
   } catch (error) {
@@ -64,6 +65,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "ID가 필요합니다." }, { status: 400 });
     }
 
+    const previous = await getKeywordById(id);
+    if (!previous) {
+      return NextResponse.json({ error: "키워드를 찾을 수 없습니다." }, { status: 404 });
+    }
+
     const entry = await updateKeyword(id, {
       keyword,
       companyName,
@@ -72,7 +78,9 @@ export async function PUT(request: NextRequest) {
       phone,
       pagePrompt,
     });
-    const indexNow = await notifyLandingPageIndexNowSafe(entry.slug);
+    const indexNow = await notifyKeywordIndexNow(entry, "slug_change", {
+      previousSlug: previous.slug,
+    });
     return NextResponse.json({ keyword: entry, indexNow });
   } catch (error) {
     const message = error instanceof Error ? error.message : "수정 실패";

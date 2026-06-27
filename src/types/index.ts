@@ -50,6 +50,8 @@ export interface KeywordEntry {
   pagePrompt: string;
   generatedContent: GeneratedContent | null;
   contentGeneratedAt: string | null;
+  /** IndexNow 마지막 전송 시각 (24시간 내 재전송 방지) */
+  indexNowSubmittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
