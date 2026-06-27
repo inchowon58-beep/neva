@@ -142,21 +142,28 @@ export default function AdminDashboard() {
 
   const handleGenerate = async (id: string) => {
     setGeneratingId(id);
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
 
-    setGeneratingId(null);
+      const data = await res.json().catch(() => ({}));
 
-    if (res.ok) {
-      const data = await res.json();
-      showMessage("Gemini AI 콘텐츠가 생성되었습니다." + indexNowSuffix(data.indexNow));
-      fetchKeywords();
-    } else {
-      const data = await res.json();
-      showMessage(data.error || "콘텐츠 생성 실패");
+      if (res.ok) {
+        const msg =
+          (data.message as string | undefined) ||
+          "Gemini AI 콘텐츠가 생성되었습니다.";
+        showMessage(msg + indexNowSuffix(data.indexNow), 8000);
+        fetchKeywords();
+      } else {
+        showMessage((data.error as string) || `콘텐츠 생성 실패 (${res.status})`, 8000);
+      }
+    } catch {
+      showMessage("콘텐츠 생성 요청 실패 (네트워크 또는 시간 초과)", 8000);
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -516,7 +523,7 @@ export default function AdminDashboard() {
                     {entry.companyName && <span>{entry.companyName}</span>}
                     {entry.phone && <span>📞 {entry.phone}</span>}
                     {entry.homepageUrl && <span>🔗 {entry.homepageUrl}</span>}
-                    {entry.generatedContent ? (
+                    {entry.generatedContent || entry.contentGeneratedAt ? (
                       <span className="text-green-600">✓ AI 콘텐츠 생성됨</span>
                     ) : (
                       <span className="text-amber-600">⚠ 콘텐츠 미생성</span>

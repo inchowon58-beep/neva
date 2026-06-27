@@ -50,6 +50,11 @@ async function writeToFile(db: Database): Promise<void> {
   await fs.writeFile(DATA_FILE, JSON.stringify(db, null, 2), "utf-8");
 }
 
+async function blobKeywordsFileExists(): Promise<boolean> {
+  const { blobs } = await list({ prefix: BLOB_FILENAME, limit: 10 });
+  return blobs.some((b) => b.pathname === BLOB_FILENAME);
+}
+
 async function readBlobJson(): Promise<Database | null> {
   const result = await get(BLOB_FILENAME, { access: "private" });
   if (!result?.stream) {
@@ -60,19 +65,25 @@ async function readBlobJson(): Promise<Database | null> {
   return JSON.parse(text) as Database;
 }
 
-async function readFromBlob(): Promise<Database> {
+/** null = Blob에 keywords.json 없음. throw = 파일은 있는데 읽기 실패 */
+async function readFromBlob(): Promise<Database | null> {
+  const exists = await blobKeywordsFileExists();
+  if (!exists) {
+    return null;
+  }
+
   try {
     const fromGet = await readBlobJson();
     if (fromGet) return fromGet;
   } catch {
-    // list + fetch 폴백
+    // get() 실패 — 아래 재시도
   }
 
   const { blobs } = await list({ prefix: BLOB_FILENAME, limit: 10 });
   const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
 
   if (!blob) {
-    return { ...DEFAULT_DB };
+    return null;
   }
 
   try {
@@ -81,7 +92,7 @@ async function readFromBlob(): Promise<Database> {
       return (await res.json()) as Database;
     }
   } catch {
-    // private blob — get() 재시도
+    // private blob
   }
 
   try {
@@ -91,7 +102,9 @@ async function readFromBlob(): Promise<Database> {
     // ignore
   }
 
-  return { ...DEFAULT_DB };
+  throw new Error(
+    "Blob keywords.json 읽기에 실패했습니다. 잠시 후 다시 시도해 주세요."
+  );
 }
 
 async function writeToBlob(db: Database): Promise<void> {
@@ -108,6 +121,8 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
     ...entry,
     companyName: entry.companyName ?? "",
     pagePrompt: entry.pagePrompt ?? "",
+    generatedContent: entry.generatedContent ?? null,
+    contentGeneratedAt: entry.contentGeneratedAt ?? null,
     indexNowSubmittedAt: entry.indexNowSubmittedAt ?? null,
   };
 }
@@ -115,13 +130,12 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
 async function readDb(): Promise<Database> {
   if (shouldUseBlobStorage()) {
     const blobDb = await readFromBlob();
-    const hasBlobData =
-      (blobDb.keywords?.length ?? 0) > 0 || (blobDb.mainPages?.length ?? 0) > 0;
 
-    if (hasBlobData) {
+    if (blobDb !== null) {
       return normalizeDb(blobDb);
     }
 
+    // Blob에 keywords.json 없을 때만 번들 파일 1회 이전 (읽기 실패 시 덮어쓰지 않음)
     if (isServerlessDeploy()) {
       const fileDb = await readFromFile();
       const hasFileData =
@@ -132,7 +146,7 @@ async function readDb(): Promise<Database> {
       }
     }
 
-    return normalizeDb(blobDb);
+    return normalizeDb({ ...DEFAULT_DB });
   }
 
   return normalizeDb(await readFromFile());

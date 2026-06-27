@@ -21,6 +21,7 @@ import {
   isThinSectionContent,
   pickContentTopics,
 } from "@/lib/content-pool";
+import { isServerlessDeploy } from "@/lib/storage";
 
 const GENERATION_CONFIG = {
   temperature: 0.85,
@@ -363,7 +364,8 @@ export async function generateLandingContent(
   let content = parseGeneratedContent(text, entry.keyword, variationSeed, entry);
 
   const thinCount = countThinSections(content.sections);
-  if (thinCount >= 2 || isThinIntro(content.intro)) {
+  const allowRetry = !isServerlessDeploy();
+  if (allowRetry && (thinCount >= 2 || isThinIntro(content.intro))) {
     const retryPrompt =
       buildPrompt(entry, variationSeed + "-retry") +
       `\n\n⚠️ 재생성 요청: 이전 결과가 너무 짧았습니다. intro 450자+, 각 H2 380자+, H3 각 180자+ 반드시 충족. placeholder 문장 금지.`;
