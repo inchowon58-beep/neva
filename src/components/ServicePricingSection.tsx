@@ -60,7 +60,7 @@ const PLANS = [
     badgeClass: "bg-purple-400/20 text-purple-100",
     headerClass: "from-purple-800 to-slate-900",
     title: "성공 보장형 독점 대행",
-    price: "150",
+    price: "120",
     priceUnit: "만원 / 월",
     credits: "월 300개",
     creditLabel: "발행",
@@ -181,7 +181,9 @@ export default function ServicePricingSection() {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-xs text-slate-500">※ VAT 별도</p>
+        <p className="mt-8 text-center text-xs text-slate-500">
+          ※ 위 비용은 VAT 별도 금액입니다.
+        </p>
       </div>
     </section>
   );
