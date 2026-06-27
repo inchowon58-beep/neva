@@ -45,11 +45,9 @@ function SectionImage({
 
 function Subsections({
   subsections,
-  variant = "stack",
   dark = false,
 }: {
   subsections: ContentSection["subsections"];
-  variant?: "stack" | "grid";
   dark?: boolean;
 }) {
   if (!subsections?.length) return null;
@@ -134,7 +132,7 @@ function FeatureSplitLayout(props: LandingSectionBlockProps) {
           <p className="whitespace-pre-line text-base leading-[1.85] text-[#5c4f42]">
             {section.content}
           </p>
-          <Subsections subsections={section.subsections} variant="grid" />
+          <Subsections subsections={section.subsections} />
         </div>
         {image && (
           <div className="relative min-h-[280px] lg:col-span-5 lg:min-h-[320px]">
@@ -175,7 +173,7 @@ function BannerStackLayout(props: LandingSectionBlockProps) {
         <p className="whitespace-pre-line text-base leading-[1.85] text-[#5c4f42]">
           {section.content}
         </p>
-        <Subsections subsections={section.subsections} variant="grid" />
+        <Subsections subsections={section.subsections} />
       </div>
     </article>
   );
@@ -201,7 +199,7 @@ function EditorialLayout(props: LandingSectionBlockProps) {
           <p className="whitespace-pre-line text-base leading-[1.85] text-[#5c4f42]">
             {section.content}
           </p>
-          <Subsections subsections={section.subsections} variant="stack" />
+          <Subsections subsections={section.subsections} />
         </div>
       </div>
     </article>

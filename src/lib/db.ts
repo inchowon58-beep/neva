@@ -9,7 +9,7 @@ const BLOB_FILENAME = "keywords.json";
 
 const DEFAULT_DB: Database = { keywords: [], mainPages: [] };
 
-function useBlobStorage(): boolean {
+function isBlobStorageEnabled(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
@@ -63,7 +63,7 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
 
 async function readDb(): Promise<Database> {
   let db: Database;
-  if (useBlobStorage()) {
+  if (isBlobStorageEnabled()) {
     db = await readFromBlob();
   } else {
     db = await readFromFile();
@@ -77,7 +77,7 @@ async function readDb(): Promise<Database> {
 }
 
 async function writeDb(db: Database): Promise<void> {
-  if (useBlobStorage()) {
+  if (isBlobStorageEnabled()) {
     await writeToBlob(db);
     return;
   }

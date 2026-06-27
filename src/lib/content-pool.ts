@@ -194,7 +194,7 @@ export function pickContentTopics(
   const primaryId = detectPrimaryTopicId(keyword);
   const pool = NEVA_CONTENT_POOL;
 
-  let candidates = seededShuffle(
+  const candidates = seededShuffle(
     pool.filter((t) => t.id !== primaryId),
     seed + "-rest"
   );
