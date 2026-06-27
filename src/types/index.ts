@@ -52,6 +52,8 @@ export interface KeywordEntry {
   contentGeneratedAt: string | null;
   /** IndexNow 마지막 전송 시각 (24시간 내 재전송 방지) */
   indexNowSubmittedAt?: string | null;
+  /** 관리자 목록에서 숨김 (랜딩 페이지는 유지) */
+  hiddenFromAdminAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

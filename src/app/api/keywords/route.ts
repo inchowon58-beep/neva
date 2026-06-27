@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createKeyword,
-  deleteKeyword,
-  deleteKeywordsBulk,
-  getAllKeywords,
+  getAdminKeywords,
   getKeywordById,
+  hideKeywordFromAdmin,
   updateKeyword,
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   const lite = request.nextUrl.searchParams.get("lite") === "1";
-  const all = await getAllKeywords();
+  const all = await getAdminKeywords();
   const keywords = all.slice(0, ADMIN_KEYWORD_LIST_MAX);
 
   if (lite) {
@@ -131,8 +130,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID가 필요합니다." }, { status: 400 });
     }
 
-    await deleteKeyword(id);
-    return NextResponse.json({ success: true });
+    await hideKeywordFromAdmin(id);
+    return NextResponse.json({ success: true, hidden: true });
   } catch (error) {
     const message = storageErrorMessage(error);
     const status = message.includes("Blob Storage") ? 503 : 400;

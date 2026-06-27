@@ -124,7 +124,12 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
     generatedContent: entry.generatedContent ?? null,
     contentGeneratedAt: entry.contentGeneratedAt ?? null,
     indexNowSubmittedAt: entry.indexNowSubmittedAt ?? null,
+    hiddenFromAdminAt: entry.hiddenFromAdminAt ?? null,
   };
+}
+
+function isAdminVisible(entry: KeywordEntry): boolean {
+  return !entry.hiddenFromAdminAt;
 }
 
 async function readDb(): Promise<Database> {
@@ -221,6 +226,14 @@ export async function getAllKeywords(): Promise<KeywordEntry[]> {
   return db.keywords.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+}
+
+/** 관리자 목록용 — 숨김 처리된 키워드 제외 */
+export async function getAdminKeywords(): Promise<KeywordEntry[]> {
+  const db = await readDb();
+  return db.keywords
+    .filter(isAdminVisible)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getKeywordBySlug(slug: string): Promise<KeywordEntry | null> {
@@ -372,7 +385,8 @@ export async function updateKeyword(
   return updated;
 }
 
-export async function deleteKeyword(id: string): Promise<void> {
+/** 관리자 목록에서만 숨김 — 랜딩 페이지는 유지 */
+export async function hideKeywordFromAdmin(id: string): Promise<void> {
   const db = await readDb();
   const index = db.keywords.findIndex((k) => k.id === id);
 
@@ -380,24 +394,65 @@ export async function deleteKeyword(id: string): Promise<void> {
     throw new Error("키워드를 찾을 수 없습니다.");
   }
 
-  db.keywords.splice(index, 1);
+  if (db.keywords[index].hiddenFromAdminAt) {
+    return;
+  }
+
+  db.keywords[index] = {
+    ...db.keywords[index],
+    hiddenFromAdminAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
   await writeDb(db);
 }
 
-export async function deleteKeywordsBulk(ids: string[]): Promise<number> {
+export async function hideKeywordsFromAdminBulk(ids: string[]): Promise<number> {
   const unique = [...new Set(ids.filter(Boolean))];
   if (unique.length === 0) return 0;
 
   const db = await readDb();
   const idSet = new Set(unique);
-  const before = db.keywords.length;
-  db.keywords = db.keywords.filter((k) => !idSet.has(k.id));
-  const removed = before - db.keywords.length;
+  const now = new Date().toISOString();
+  let hidden = 0;
 
-  if (removed > 0) {
+  db.keywords = db.keywords.map((k) => {
+    if (!idSet.has(k.id) || k.hiddenFromAdminAt) {
+      return k;
+    }
+    hidden++;
+    return {
+      ...k,
+      hiddenFromAdminAt: now,
+      updatedAt: now,
+    };
+  });
+
+  if (hidden > 0) {
     await writeDb(db);
   }
+  return hidden;
+}
+
+/** DB에서 완전 삭제 — 랜딩 페이지 404 */
+export async function deleteKeywordPermanent(id: string): Promise<KeywordEntry> {
+  const db = await readDb();
+  const index = db.keywords.findIndex((k) => k.id === id);
+
+  if (index === -1) {
+    throw new Error("키워드를 찾을 수 없습니다.");
+  }
+
+  const [removed] = db.keywords.splice(index, 1);
+  await writeDb(db);
   return removed;
+}
+
+export async function deleteKeywordBySlug(slug: string): Promise<KeywordEntry> {
+  const entry = await getKeywordBySlug(slug);
+  if (!entry) {
+    throw new Error("해당 슬러그의 키워드를 찾을 수 없습니다.");
+  }
+  return deleteKeywordPermanent(entry.id);
 }
 
 export async function saveGeneratedContent(

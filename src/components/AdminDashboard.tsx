@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import AdminKeywordList, { type KeywordListItem } from "@/components/AdminKeywordList";
+import AdminPermanentDelete from "@/components/AdminPermanentDelete";
 import { CATTERY_PRESET, formatDate } from "@/lib/constants";
 import { DEFAULT_PROMPT } from "@/lib/gemini";
 import { MAX_KEYWORD_IMPORT, parseKeywordTxt } from "@/lib/keyword-import";
@@ -462,6 +463,8 @@ export default function AdminDashboard() {
         onEdit={handleEdit}
         onMessage={showMessage}
       />
+
+      <AdminPermanentDelete onMessage={showMessage} />
 
       {/* Main Page Links */}
       <form

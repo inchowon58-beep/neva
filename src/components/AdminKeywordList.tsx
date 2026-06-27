@@ -200,10 +200,16 @@ export default function AdminKeywordList({
   const handleBulkDelete = async () => {
     const ids = [...selected];
     if (ids.length === 0) {
-      onMessage("삭제할 키워드를 선택해 주세요.");
+      onMessage("목록에서 제거할 키워드를 선택해 주세요.");
       return;
     }
-    if (!confirm(`선택한 ${ids.length}개 키워드를 삭제하시겠습니까?`)) return;
+    if (
+      !confirm(
+        `선택한 ${ids.length}개를 관리자 목록에서 제거합니다.\n\n랜딩 페이지는 그대로 유지됩니다.`
+      )
+    ) {
+      return;
+    }
 
     setBulkWorking(true);
     try {
@@ -216,22 +222,30 @@ export default function AdminKeywordList({
       if (res.ok) {
         setSelected(new Set());
         onRefresh();
-        onMessage(`${data.deletedCount ?? ids.length}개 키워드가 삭제되었습니다.`);
+        onMessage(
+          `${data.hiddenCount ?? ids.length}개가 목록에서 제거되었습니다. (페이지는 유지)`
+        );
       } else {
-        onMessage((data.error as string) || "일괄 삭제 실패");
+        onMessage((data.error as string) || "목록 제거 실패");
       }
     } catch {
-      onMessage("일괄 삭제 요청 실패");
+      onMessage("목록 제거 요청 실패");
     } finally {
       setBulkWorking(false);
     }
   };
 
   const handleDeleteOne = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (
+      !confirm(
+        "관리자 목록에서 제거합니다.\n\n랜딩 페이지는 그대로 유지됩니다."
+      )
+    ) {
+      return;
+    }
     const res = await fetch(`/api/keywords?id=${id}`, { method: "DELETE" });
     if (res.ok) {
-      onMessage("삭제되었습니다.");
+      onMessage("목록에서 제거되었습니다. (페이지는 유지)");
       setSelected((prev) => {
         const next = new Set(prev);
         next.delete(id);
@@ -304,10 +318,10 @@ export default function AdminKeywordList({
             onClick={handleBulkDelete}
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
           >
-            선택 삭제 ({selected.size})
+            선택 목록 제거 ({selected.size})
           </button>
           <span className="self-center text-xs text-slate-500">
-            AI 일괄 생성은 {ADMIN_BULK_AI_BATCH_SIZE}개씩 순차 처리
+            목록 제거 시 랜딩 페이지는 유지 · AI 일괄 생성은 {ADMIN_BULK_AI_BATCH_SIZE}개씩 순차 처리
           </span>
         </div>
       </div>
@@ -392,7 +406,7 @@ export default function AdminKeywordList({
                     disabled={bulkWorking}
                     className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
                   >
-                    삭제
+                    목록 제거
                   </button>
                 </div>
               </div>
