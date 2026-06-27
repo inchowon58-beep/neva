@@ -8,6 +8,7 @@ import { createVariationSeed } from "@/lib/hero-copy";
 import { getOrGenerateContent } from "@/lib/landing";
 import { getSampleContent, getSampleEntry, isSampleSlug } from "@/lib/sample";
 import { ensureSeedData } from "@/lib/seed";
+import { getSiteBaseUrl, landingPageUrl } from "@/lib/site-url";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -43,16 +44,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: content.title,
     description: content.metaDescription,
-    keywords: [entry.keyword, "네바마스커레이드", "SEO", "랜딩페이지"],
+    keywords: [entry.keyword, "네바마스커레이드", "고양이분양", "캐터리"],
     openGraph: {
       title: content.title,
       description: content.metaDescription,
       type: "website",
       locale: "ko_KR",
+      url: landingPageUrl(slug),
       images: entry.imageUrl ? [{ url: entry.imageUrl, alt: entry.keyword }] : [],
     },
     alternates: {
-      canonical: `/landing/${slug}`,
+      canonical: landingPageUrl(slug),
     },
   };
 }
@@ -75,12 +77,14 @@ export default async function LandingPage({ params }: PageProps) {
 
   const { entry: finalEntry, content } = await getOrGenerateContent(entry);
 
+  const pageUrl = landingPageUrl(slug);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: content.title,
     description: content.metaDescription,
-    url: `/landing/${slug}`,
+    url: pageUrl,
     ...(finalEntry.phone && { telephone: finalEntry.phone }),
     ...(finalEntry.imageUrl && { image: finalEntry.imageUrl }),
   };

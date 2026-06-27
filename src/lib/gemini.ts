@@ -123,7 +123,7 @@ const JSON_SCHEMA = `
     }
   ],
   "storyBridge": "정보→분양 전환 문단 (200~350자, 업체명·No-Cage·안전 인도)",
-  "ctaText": "입양·상담 유도 문구"
+  "ctaText": "연락처 안내 문구"
 }
 
 본문 sections는 아래 [선택된 4개 주제]만 H2로 작성 (정확히 4개, 순서 준수).
@@ -317,7 +317,7 @@ export function normalizeGeneratedContent(
     intro: sanitizeBreedText(intro, breed, keyword),
     sections,
     storyBridge,
-    ctaText: raw.ctaText || "지금 바로 입양·상담 문의하기",
+    ctaText: raw.ctaText || "연락처 안내",
   };
 }
 
@@ -398,7 +398,7 @@ export function getDefaultContent(entry: KeywordEntry): GeneratedContent {
       intro: buildIntroFromTopics(entry.keyword, topics, breed),
       sections,
       storyBridge: buildStoryBridge(entry),
-      ctaText: "지금 바로 입양·상담 문의하기",
+      ctaText: "연락처 안내",
     },
     entry.keyword,
     seed,

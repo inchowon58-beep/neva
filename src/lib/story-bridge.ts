@@ -14,7 +14,6 @@ export interface StructuredStoryBridge {
   lead: string;
   features: StoryBridgeFeature[];
   closing: string;
-  ctaLabel: string;
 }
 
 function attachEunNeun(name: string): string {
@@ -52,8 +51,7 @@ export function buildStructuredStoryBridge(entry: KeywordEntry): StructuredStory
         description: "전국 직접 안전 인도 서비스로 소중한 묘연을 안심하고 맺어드립니다.",
       },
     ],
-    closing: `${attachEunNeun(company)} ${keywordClean} 입양을 진지하게 고민하신다면, 맞춤 상담으로 안내해 드리겠습니다.`,
-    ctaLabel: "분양 상담 신청하기",
+    closing: `${attachEunNeun(company)} ${keywordClean}에 대한 신뢰할 수 있는 ${breed} 정보를 제공합니다.`,
   };
 }
 

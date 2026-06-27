@@ -1,12 +1,13 @@
-import { getAllSlugs } from "@/lib/db";
+import { getAllKeywords } from "@/lib/db";
+import { getSiteBaseUrl, landingPageUrl } from "@/lib/site-url";
 
 export default async function sitemap() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
-  const slugs = await getAllSlugs();
+  const baseUrl = getSiteBaseUrl();
+  const keywords = await getAllKeywords();
 
-  const landingPages = slugs.map((slug) => ({
-    url: `${baseUrl}/landing/${slug}`,
-    lastModified: new Date(),
+  const landingPages = keywords.map((entry) => ({
+    url: landingPageUrl(entry.slug, baseUrl),
+    lastModified: new Date(entry.updatedAt || entry.createdAt),
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));

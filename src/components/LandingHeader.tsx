@@ -11,20 +11,28 @@ interface LandingHeaderProps {
   companyName: string;
   keyword: string;
   showGallery?: boolean;
+  showNearby?: boolean;
 }
 
-function buildNavItems(showGallery: boolean): LandingNavItem[] {
+function buildNavItems(showGallery: boolean, showNearby: boolean): LandingNavItem[] {
   const items: LandingNavItem[] = [
     { id: "section-about", label: "소개" },
-    { id: "section-breed", label: "품종 정보" },
-    { id: "section-cattery", label: "캐터리" },
   ];
+
+  if (showNearby) {
+    items.push({ id: "section-nearby", label: "인근 지역" });
+  }
+
+  items.push(
+    { id: "section-breed", label: "품종 정보" },
+    { id: "section-cattery", label: "캐터리" }
+  );
 
   if (showGallery) {
     items.push({ id: "section-gallery", label: "갤러리" });
   }
 
-  items.push({ id: "section-contact", label: "상담 문의" });
+  items.push({ id: "section-contact", label: "연락처" });
   return items;
 }
 
@@ -32,9 +40,13 @@ export default function LandingHeader({
   companyName,
   keyword,
   showGallery = true,
+  showNearby = true,
 }: LandingHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const navItems = useMemo(() => buildNavItems(showGallery), [showGallery]);
+  const navItems = useMemo(
+    () => buildNavItems(showGallery, showNearby),
+    [showGallery, showNearby]
+  );
 
   const scrollToSection = useCallback((id: string) => {
     setMenuOpen(false);

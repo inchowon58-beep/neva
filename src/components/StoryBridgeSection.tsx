@@ -13,10 +13,6 @@ interface StoryBridgeSectionProps {
 export default function StoryBridgeSection({ entry }: StoryBridgeSectionProps) {
   const data: StructuredStoryBridge = buildStructuredStoryBridge(entry);
 
-  const scrollToForm = () => {
-    document.getElementById("consultation-form")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <section id="section-cattery" className="scroll-mt-20 full-bleed relative overflow-hidden bg-[#1a1612] py-16 sm:py-24">
       <div
@@ -55,23 +51,6 @@ export default function StoryBridgeSection({ entry }: StoryBridgeSectionProps) {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              {entry.phone ? (
-                <a
-                  href={`tel:${entry.phone.replace(/[^0-9+]/g, "")}`}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[#c4a574] px-6 py-3.5 text-sm font-semibold text-[#1a1612] transition hover:bg-[#d4b584]"
-                >
-                  <span aria-hidden>📞</span>
-                  {data.ctaLabel}
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  onClick={scrollToForm}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[#c4a574] px-6 py-3.5 text-sm font-semibold text-[#1a1612] transition hover:bg-[#d4b584]"
-                >
-                  {data.ctaLabel}
-                </button>
-              )}
               {entry.homepageUrl && (
                 <a
                   href={entry.homepageUrl}

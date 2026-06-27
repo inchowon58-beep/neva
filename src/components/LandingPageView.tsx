@@ -1,4 +1,3 @@
-import ConsultationForm from "@/components/ConsultationForm";
 import ContentImage from "@/components/ContentImage";
 import LandingBottomBar from "@/components/LandingBottomBar";
 import LandingHeader from "@/components/LandingHeader";
@@ -7,7 +6,9 @@ import LandingSectionBlock, {
   isFullBleedSection,
 } from "@/components/LandingSectionBlock";
 import StoryBridgeSection from "@/components/StoryBridgeSection";
+import NearbyAreasSection from "@/components/NearbyAreasSection";
 import { assignLandingImages, buildImageFallbackChain } from "@/lib/image";
+import { buildHeroH1, extractRegionName } from "@/lib/region";
 import type { GeneratedContent, KeywordEntry, LandingImage } from "@/types";
 
 type LandingVariant = "default" | "sample";
@@ -52,6 +53,7 @@ export default async function LandingPageView({
   const heroEyebrow = content.heroEyebrow;
   const heroTitle = content.heroTitle;
   const heroSubtitle = content.heroSubtitle;
+  const heroH1 = buildHeroH1(entry.keyword, heroTitle);
 
   return (
     <article
@@ -62,6 +64,7 @@ export default async function LandingPageView({
         companyName={companyName}
         keyword={entry.keyword}
         showGallery={images.gallery.length > 0}
+        showNearby={Boolean(extractRegionName(entry.keyword))}
       />
 
       {/* Hero */}
@@ -88,7 +91,10 @@ export default async function LandingPageView({
               {variant === "sample" ? "SAMPLE · PREMIUM HERO" : heroEyebrow}
             </p>
             <h1 className="max-w-4xl font-serif text-3xl leading-snug sm:text-4xl lg:text-5xl">
-              {heroTitle}
+              <span className="mb-3 block text-2xl font-semibold tracking-tight text-[#c4a574] sm:text-3xl lg:text-4xl">
+                {heroH1.keywordLine}
+              </span>
+              <span className="block text-[#f5f0e8]">{heroH1.titleLine}</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#d4ccc0] sm:text-lg">
               {heroSubtitle}
@@ -99,7 +105,7 @@ export default async function LandingPageView({
                   href={`tel:${entry.phone.replace(/[^0-9+]/g, "")}`}
                   className="rounded-2xl bg-[#c4a574] px-8 py-3.5 text-sm font-semibold tracking-wide text-[#1a1612] transition hover:bg-[#d4b584]"
                 >
-                  Adoption Inquiry
+                  {entry.phone}
                 </a>
               )}
               {entry.homepageUrl && (
@@ -134,6 +140,8 @@ export default async function LandingPageView({
           </p>
         </div>
       </section>
+
+      <NearbyAreasSection entry={entry} />
 
       {/* Breed Information */}
       <section id="section-breed" className="scroll-mt-20 bg-[#f5f0e8]/60 py-20">        <div className="mx-auto max-w-6xl px-5 sm:px-6">
@@ -196,46 +204,36 @@ export default async function LandingPageView({
         </section>
       )}
 
-      {/* CTA + Consultation Form */}
+      {/* Contact */}
       <section id="section-contact" className="scroll-mt-20 border-t border-[#e8e0d4] bg-[#faf8f5] py-20">
         <div className="mx-auto max-w-6xl px-5 sm:px-6">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
-            <div className="text-center lg:text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#8b7355]">
-                Contact
-              </p>
-              <h2 className="mt-3 font-serif text-3xl text-[#2c2420]">{content.ctaText}</h2>
-              <p className="mt-4 leading-relaxed text-[#6b5d4d]">
-                {entry.keyword}에 대한 입양·상담이 필요하시면 폼을 작성하시거나 아래 연락처를
-                이용해 주세요.
-              </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-4 lg:justify-start">
-                {entry.homepageUrl && (
-                  <a
-                    href={entry.homepageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-2xl bg-[#2c2420] px-8 py-3.5 text-sm font-semibold text-[#f5f0e8] transition hover:bg-[#3d3429]"
-                  >
-                    공식 홈페이지
-                  </a>
-                )}
-                {entry.phone && (
-                  <a
-                    href={`tel:${entry.phone.replace(/[^0-9+]/g, "")}`}
-                    className="rounded-2xl bg-[#c4a574] px-8 py-3.5 text-sm font-semibold text-[#1a1612] transition hover:bg-[#d4b584]"
-                  >
-                    {entry.phone}
-                  </a>
-                )}
-              </div>
-            </div>
-            <div id="consultation-form">
-              <ConsultationForm
-              keyword={entry.keyword}
-              companyName={companyName}
-              phone={entry.phone}
-            />
+          <div className="mx-auto max-w-xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#8b7355]">
+              Contact
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-[#2c2420]">연락처</h2>
+            <p className="mt-4 leading-relaxed text-[#6b5d4d]">
+              {entry.keyword}에 대한 자세한 정보는 아래 연락처 또는 공식 홈페이지를 이용해 주세요.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              {entry.homepageUrl && (
+                <a
+                  href={entry.homepageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-2xl bg-[#2c2420] px-8 py-3.5 text-sm font-semibold text-[#f5f0e8] transition hover:bg-[#3d3429]"
+                >
+                  공식 홈페이지
+                </a>
+              )}
+              {entry.phone && (
+                <a
+                  href={`tel:${entry.phone.replace(/[^0-9+]/g, "")}`}
+                  className="rounded-2xl bg-[#c4a574] px-8 py-3.5 text-sm font-semibold text-[#1a1612] transition hover:bg-[#d4b584]"
+                >
+                  {entry.phone}
+                </a>
+              )}
             </div>
           </div>
         </div>

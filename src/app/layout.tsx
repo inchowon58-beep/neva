@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Footer from "@/components/Footer";
+import { getSiteBaseUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteBaseUrl()),
   title: "네바마스커레이드분양 | 키워드 랜딩페이지 자동 생성 서비스",
   description:
     "네바마스커레이드 키워드와 이미지 조합으로 네이버 웹문서 대량 노출. SEO 최적화 맞춤형 서브 랜딩페이지를 실시간 자동 생성합니다.",
@@ -16,6 +18,11 @@ export const metadata: Metadata = {
   verification: {
     other: {
       "naver-site-verification": "e7b610b84b1270c6676af99949e202a0beaee60b",
+    },
+  },
+  alternates: {
+    types: {
+      "application/rss+xml": [{ url: "/rss.xml", title: "키워드 랜딩 RSS" }],
     },
   },
 };

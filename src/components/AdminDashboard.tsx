@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { formatDate } from "@/lib/constants";
 import { DEFAULT_PROMPT } from "@/lib/gemini";
 import { MAX_KEYWORD_IMPORT, parseKeywordTxt } from "@/lib/keyword-import";
@@ -26,6 +26,8 @@ const emptyForm: KeywordFormData = {
 };
 
 const emptyMainPageForm = { keyword: "", path: "" };
+
+const RECENT_KEYWORD_LIMIT = 10;
 
 interface IndexNowResponse {
   ok?: boolean;
@@ -58,6 +60,7 @@ export default function AdminDashboard() {
   const [importLoading, setImportLoading] = useState(false);
   const [importPreview, setImportPreview] = useState<string[]>([]);
   const [importFileName, setImportFileName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchKeywords = async () => {
     const [kwRes, mpRes] = await Promise.all([
@@ -192,14 +195,7 @@ export default function AdminDashboard() {
 
   const handleImportSubmit = async () => {
     if (importPreview.length === 0) {
-      showMessage("txt 파일에 등록할 키워드가 없습니다.");
-      return;
-    }
-    if (
-      !confirm(
-        `${importPreview.length}개 키워드를 등록하고 IndexNow로 알릴까요?\n(위 폼의 업체명·이미지 URL 등이 공통 적용됩니다)`
-      )
-    ) {
+      showMessage("txt 파일을 선택해 주세요.");
       return;
     }
 
@@ -217,15 +213,10 @@ export default function AdminDashboard() {
     setImportLoading(false);
 
     if (res.ok) {
-      let msg = `${data.createdCount}개 키워드 일괄 등록 완료`;
-      if (data.indexNow?.ok) {
-        msg += ` · IndexNow ${data.indexNow.submitted ?? data.createdCount}개 URL 알림`;
-      } else if (data.indexNow?.error) {
-        msg += ` · IndexNow: ${data.indexNow.error}`;
-      }
-      showMessage(msg, 8000);
+      showMessage(`총 ${data.createdCount}개의 키워드가 등록되었습니다.`, 8000);
       setImportPreview([]);
       setImportFileName("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       fetchKeywords();
     } else {
       showMessage(data.error || "일괄 등록 실패", 8000);
@@ -288,6 +279,8 @@ export default function AdminDashboard() {
     setMainPageForm(emptyMainPageForm);
   };
 
+  const recentKeywords = keywords.slice(0, RECENT_KEYWORD_LIMIT);
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -324,35 +317,21 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        최근 등록된 키워드 {RECENT_KEYWORD_LIMIT}개만 표시합니다.
+        {keywords.length > RECENT_KEYWORD_LIMIT && (
+          <span className="ml-1 font-medium text-slate-800">(전체 {keywords.length}개 등록됨)</span>
+        )}
+      </div>
+
       {message && (
         <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div>
       )}
 
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900">
-        <p className="font-semibold text-emerald-800">네이버 IndexNow (자동 수집 알림)</p>
-        <ul className="mt-2 list-inside list-disc space-y-1 text-emerald-900/90">
-          <li>
-            <strong>새 키워드 등록</strong> · <strong>AI 콘텐츠 생성</strong> 시 자동 전송 (별도
-            일괄전송 불필요)
-          </li>
-          <li>같은 URL은 <strong>24시간 내 재전송하지 않음</strong> (매일 반복 불필요)</li>
-          <li>수집·검색 노출은 네이버 처리에 <strong>며칠~수 주</strong> 걸릴 수 있음</li>
-          <li>
-            「일괄 전송 완료」= IndexNow 연동 성공 · <strong>초기 1회</strong> 또는 미전송 페이지
-            보충용
-          </li>
-          <li>
-            서치어드바이저 <strong>수동 수집요청(하루 ~50건)</strong>과 IndexNow는{" "}
-            <strong>별도</strong> · txt로 1000개 등록·IndexNow 1회 전송 가능 (수집·노출은 네이버
-            처리)
-          </li>
-        </ul>
-      </div>
-
-      {/* Registration Form */}
+      {/* 개별 등록 */}
       <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold">
-          {editingId ? "키워드 수정" : "새 키워드 등록"}
+          {editingId ? "키워드 수정" : "개별 등록"}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -368,8 +347,7 @@ export default function AdminDashboard() {
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="mt-1 text-xs text-slate-500">
-              등록·AI 생성 시 IndexNow로 네이버에 자동 알림됩니다. 슬러그만 바뀔 때만 수정 시
-              재전송됩니다.
+              등록 시 /landing/[slug] 페이지가 생성됩니다.
             </p>
           </div>
           <div>
@@ -451,61 +429,65 @@ export default function AdminDashboard() {
         </div>
       </form>
 
-      {/* TXT bulk import */}
-      <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-violet-950">txt 파일 일괄 등록</h2>
-        <p className="mt-1 text-sm text-violet-900/80">
-          txt 파일 <strong>한 줄에 키워드 1개</strong>. 빈 줄·<code>#</code> 주석은 무시합니다. 최대{" "}
-          {MAX_KEYWORD_IMPORT}개. 위 등록 폼의 업체명·이미지 URL·전화번호가 전체에 공통 적용됩니다.
+      {/* txt 일괄 등록 */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">txt 일괄 등록</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          txt 파일 한 줄에 키워드 1개 · 최대 {MAX_KEYWORD_IMPORT}개 · 위 개별 등록 폼의
+          업체명·이미지·연락처가 공통 적용됩니다.
         </p>
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label className="mb-1 block text-sm font-medium text-violet-900">키워드 txt 파일</label>
-            <input
-              type="file"
-              accept=".txt,text/plain"
-              onChange={(e) => handleImportFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-500"
-            />
-            {importFileName && (
-              <p className="mt-2 text-sm text-violet-800">
-                {importFileName} · <strong>{importPreview.length}개</strong> 키워드 인식
-                {importPreview.length > 0 && (
-                  <span className="ml-2 text-violet-600">
-                    (예: {importPreview.slice(0, 3).join(", ")}
-                    {importPreview.length > 3 ? " …" : ""})
-                  </span>
-                )}
-              </p>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".txt,text/plain"
+          className="hidden"
+          onChange={(e) => handleImportFile(e.target.files?.[0] ?? null)}
+        />
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            찾기
+          </button>
+          <span className="min-w-0 flex-1 text-sm text-slate-600">
+            {importFileName ? (
+              <>
+                <span className="font-medium text-slate-900">{importFileName}</span>
+                {" · "}
+                <span className="font-semibold text-blue-600">{importPreview.length}개</span> 키워드
+              </>
+            ) : (
+              "선택된 파일 없음"
             )}
-          </div>
+          </span>
           <button
             type="button"
             disabled={importLoading || importPreview.length === 0}
             onClick={handleImportSubmit}
-            className="rounded-lg bg-violet-600 px-6 py-2.5 font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+            className="rounded-lg bg-violet-600 px-6 py-2.5 font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {importLoading ? "등록 중..." : `${importPreview.length || ""}개 일괄 등록`}
+            {importLoading ? "등록 중..." : "일괄 등록"}
           </button>
         </div>
-        <pre className="mt-4 overflow-x-auto rounded-lg bg-white/80 p-3 text-xs text-slate-600">
-{`# keywords.txt 예시
-안양네바마스커레이드분양
-시흥네바마스커레이드분양
-수원고양이분양`}
-        </pre>
       </div>
 
       {/* Keyword List */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold">등록된 키워드 ({keywords.length})</h2>
+          <h2 className="text-lg font-semibold">최근 등록된 키워드 {RECENT_KEYWORD_LIMIT}개</h2>
+          {keywords.length > RECENT_KEYWORD_LIMIT && (
+            <p className="mt-1 text-sm text-slate-500">전체 {keywords.length}개 중 최신 {RECENT_KEYWORD_LIMIT}개</p>
+          )}
         </div>
         {keywords.length === 0 ? (
           <p className="px-6 py-12 text-center text-slate-500">등록된 키워드가 없습니다.</p>
         ) : (
           <div className="divide-y divide-slate-100">
-            {keywords.map((entry) => (
+            {recentKeywords.map((entry) => (
               <div key={entry.id} className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-slate-900">{entry.keyword}</p>
