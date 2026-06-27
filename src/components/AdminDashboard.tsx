@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { formatDate } from "@/lib/constants";
+import { CATTERY_PRESET, formatDate } from "@/lib/constants";
 import { DEFAULT_PROMPT } from "@/lib/gemini";
 import { MAX_KEYWORD_IMPORT, parseKeywordTxt } from "@/lib/keyword-import";
 import type { KeywordEntry, MainPageLink } from "@/types";
@@ -233,6 +233,16 @@ export default function AdminDashboard() {
     setForm(emptyForm);
   };
 
+  const applyCatteryPreset = () => {
+    setForm((prev) => ({
+      ...prev,
+      companyName: CATTERY_PRESET.companyName,
+      imageUrl: CATTERY_PRESET.imageUrl,
+      homepageUrl: CATTERY_PRESET.homepageUrl,
+      phone: CATTERY_PRESET.phone,
+    }));
+  };
+
   const handleMainPageSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -351,12 +361,21 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">업체명</label>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <label className="text-sm font-medium text-slate-700">업체명</label>
+              <button
+                type="button"
+                onClick={applyCatteryPreset}
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+              >
+                캐터리 선택
+              </button>
+            </div>
             <input
               type="text"
               value={form.companyName}
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-              placeholder="예: 네바 마스커레이드"
+              placeholder="예: 캐터리"
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>

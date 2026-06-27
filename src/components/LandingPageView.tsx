@@ -141,8 +141,6 @@ export default async function LandingPageView({
         </div>
       </section>
 
-      <NearbyAreasSection entry={entry} />
-
       {/* Breed Information */}
       <section id="section-breed" className="scroll-mt-20 bg-[#f5f0e8]/60 py-20">        <div className="mx-auto max-w-6xl px-5 sm:px-6">
           <div className="mb-16 text-center">
@@ -238,6 +236,8 @@ export default async function LandingPageView({
           </div>
         </div>
       </section>
+
+      <NearbyAreasSection entry={entry} />
 
       {/* Footer strip */}
       <footer className="border-t border-[#e8e0d4] bg-[#2c2420] py-10 text-center text-sm text-[#a89888]">
