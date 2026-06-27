@@ -31,7 +31,7 @@ function normalizeDb(db: Database): Database {
   };
 }
 
-function normalizeSettings(settings?: SiteSettings): SiteSettings {
+function normalizeSettings(settings?: Partial<SiteSettings>): SiteSettings {
   const count = settings?.mainShowcaseDisplayCount ?? DEFAULT_MAIN_SHOWCASE_DISPLAY_COUNT;
   return {
     mainShowcaseDisplayCount: Math.min(
