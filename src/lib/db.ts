@@ -199,6 +199,59 @@ export async function createKeyword(input: KeywordInput): Promise<KeywordEntry> 
   return entry;
 }
 
+export interface BulkCreateResult {
+  created: KeywordEntry[];
+  skippedEmpty: number;
+}
+
+/** txt 등 — 여러 키워드 한 번에 DB 저장 (단일 write) */
+export async function createKeywordsBulk(
+  keywordLines: string[],
+  defaults: KeywordInput
+): Promise<BulkCreateResult> {
+  const db = await readDb();
+  const now = new Date().toISOString();
+  const existingSlugs = db.keywords.map((k) => k.slug);
+  const created: KeywordEntry[] = [];
+  let skippedEmpty = 0;
+
+  for (const raw of keywordLines) {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      skippedEmpty++;
+      continue;
+    }
+
+    const { slug, keyword } = resolveUniqueSlug(trimmed, existingSlugs);
+    existingSlugs.push(slug);
+
+    const entry: KeywordEntry = {
+      id: createId(),
+      slug,
+      keyword,
+      companyName: defaults.companyName.trim(),
+      imageUrl: defaults.imageUrl.trim(),
+      homepageUrl: defaults.homepageUrl.trim(),
+      phone: defaults.phone.trim(),
+      pagePrompt: defaults.pagePrompt.trim(),
+      generatedContent: null,
+      contentGeneratedAt: null,
+      indexNowSubmittedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    db.keywords.push(entry);
+    created.push(entry);
+  }
+
+  if (created.length > 0) {
+    await writeDb(db);
+  }
+
+  return { created, skippedEmpty };
+}
+
 export async function updateKeyword(
   id: string,
   input: Partial<KeywordInput>

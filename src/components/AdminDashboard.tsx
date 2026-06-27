@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { formatDate } from "@/lib/constants";
 import { DEFAULT_PROMPT } from "@/lib/gemini";
+import { MAX_KEYWORD_IMPORT, parseKeywordTxt } from "@/lib/keyword-import";
 import type { KeywordEntry, MainPageLink } from "@/types";
 
 interface KeywordFormData {
@@ -54,6 +55,9 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [indexNowLoading, setIndexNowLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<string[]>([]);
+  const [importFileName, setImportFileName] = useState("");
 
   const fetchKeywords = async () => {
     const [kwRes, mpRes] = await Promise.all([
@@ -75,9 +79,9 @@ export default function AdminDashboard() {
     fetchKeywords();
   }, []);
 
-  const showMessage = (text: string) => {
+  const showMessage = (text: string, ms = 5000) => {
     setMessage(text);
-    setTimeout(() => setMessage(""), 3000);
+    setTimeout(() => setMessage(""), ms);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -171,6 +175,60 @@ export default function AdminDashboard() {
       }
     } else {
       showMessage(data.error || data.indexNow?.error || "IndexNow 전송 실패");
+    }
+  };
+
+  const handleImportFile = async (file: File | null) => {
+    if (!file) {
+      setImportPreview([]);
+      setImportFileName("");
+      return;
+    }
+    const text = await file.text();
+    const parsed = parseKeywordTxt(text);
+    setImportPreview(parsed);
+    setImportFileName(file.name);
+  };
+
+  const handleImportSubmit = async () => {
+    if (importPreview.length === 0) {
+      showMessage("txt 파일에 등록할 키워드가 없습니다.");
+      return;
+    }
+    if (
+      !confirm(
+        `${importPreview.length}개 키워드를 등록하고 IndexNow로 알릴까요?\n(위 폼의 업체명·이미지 URL 등이 공통 적용됩니다)`
+      )
+    ) {
+      return;
+    }
+
+    setImportLoading(true);
+    const fd = new FormData();
+    fd.append("text", importPreview.join("\n"));
+    fd.append("companyName", form.companyName);
+    fd.append("imageUrl", form.imageUrl);
+    fd.append("homepageUrl", form.homepageUrl);
+    fd.append("phone", form.phone);
+    fd.append("pagePrompt", form.pagePrompt);
+
+    const res = await fetch("/api/keywords/import", { method: "POST", body: fd });
+    const data = await res.json();
+    setImportLoading(false);
+
+    if (res.ok) {
+      let msg = `${data.createdCount}개 키워드 일괄 등록 완료`;
+      if (data.indexNow?.ok) {
+        msg += ` · IndexNow ${data.indexNow.submitted ?? data.createdCount}개 URL 알림`;
+      } else if (data.indexNow?.error) {
+        msg += ` · IndexNow: ${data.indexNow.error}`;
+      }
+      showMessage(msg, 8000);
+      setImportPreview([]);
+      setImportFileName("");
+      fetchKeywords();
+    } else {
+      showMessage(data.error || "일괄 등록 실패", 8000);
     }
   };
 
@@ -283,6 +341,11 @@ export default function AdminDashboard() {
             「일괄 전송 완료」= IndexNow 연동 성공 · <strong>초기 1회</strong> 또는 미전송 페이지
             보충용
           </li>
+          <li>
+            서치어드바이저 <strong>수동 수집요청(하루 ~50건)</strong>과 IndexNow는{" "}
+            <strong>별도</strong> · txt로 1000개 등록·IndexNow 1회 전송 가능 (수집·노출은 네이버
+            처리)
+          </li>
         </ul>
       </div>
 
@@ -387,6 +450,51 @@ export default function AdminDashboard() {
           )}
         </div>
       </form>
+
+      {/* TXT bulk import */}
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-violet-950">txt 파일 일괄 등록</h2>
+        <p className="mt-1 text-sm text-violet-900/80">
+          txt 파일 <strong>한 줄에 키워드 1개</strong>. 빈 줄·<code>#</code> 주석은 무시합니다. 최대{" "}
+          {MAX_KEYWORD_IMPORT}개. 위 등록 폼의 업체명·이미지 URL·전화번호가 전체에 공통 적용됩니다.
+        </p>
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="mb-1 block text-sm font-medium text-violet-900">키워드 txt 파일</label>
+            <input
+              type="file"
+              accept=".txt,text/plain"
+              onChange={(e) => handleImportFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-500"
+            />
+            {importFileName && (
+              <p className="mt-2 text-sm text-violet-800">
+                {importFileName} · <strong>{importPreview.length}개</strong> 키워드 인식
+                {importPreview.length > 0 && (
+                  <span className="ml-2 text-violet-600">
+                    (예: {importPreview.slice(0, 3).join(", ")}
+                    {importPreview.length > 3 ? " …" : ""})
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={importLoading || importPreview.length === 0}
+            onClick={handleImportSubmit}
+            className="rounded-lg bg-violet-600 px-6 py-2.5 font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+          >
+            {importLoading ? "등록 중..." : `${importPreview.length || ""}개 일괄 등록`}
+          </button>
+        </div>
+        <pre className="mt-4 overflow-x-auto rounded-lg bg-white/80 p-3 text-xs text-slate-600">
+{`# keywords.txt 예시
+안양네바마스커레이드분양
+시흥네바마스커레이드분양
+수원고양이분양`}
+        </pre>
+      </div>
 
       {/* Keyword List */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
