@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf8f5;
+  --foreground: #2c2420;
+  --cattery-dark: #1a1612;
+  --cattery-gold: #c4a574;
+  --cattery-cream: #faf8f5;
+  --cattery-warm-gray: #6b5d4d;
+  --cattery-soft-beige: #f5f0e8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+.landing-cattery {
+  background: var(--cattery-cream);
+  color: var(--foreground);
+}
+
+.landing-cattery .font-serif {
+  font-family: Georgia, "Times New Roman", "Noto Serif KR", serif;
+}
+
+.landing-cattery .full-bleed {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
