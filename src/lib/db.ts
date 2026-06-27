@@ -1,10 +1,10 @@
-import { put, list } from "@vercel/blob";
+import { get, list, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 import {
-  assertStorageWritable,
-  isBlobStorageEnabled,
   isServerlessDeploy,
+  shouldUseBlobStorage,
+  StorageNotConfiguredError,
 } from "@/lib/storage";
 import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink } from "@/types";
 
@@ -43,30 +43,60 @@ async function readFromFile(): Promise<Database> {
 }
 
 async function writeToFile(db: Database): Promise<void> {
-  assertStorageWritable();
+  if (isServerlessDeploy()) {
+    throw new StorageNotConfiguredError();
+  }
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(DATA_FILE, JSON.stringify(db, null, 2), "utf-8");
 }
 
+async function readBlobJson(): Promise<Database | null> {
+  const result = await get(BLOB_FILENAME, { access: "private" });
+  if (!result?.stream) {
+    return null;
+  }
+  const text = await new Response(result.stream as ReadableStream).text();
+  if (!text.trim()) return null;
+  return JSON.parse(text) as Database;
+}
+
 async function readFromBlob(): Promise<Database> {
-  const { blobs } = await list({ prefix: BLOB_FILENAME, limit: 1 });
+  try {
+    const fromGet = await readBlobJson();
+    if (fromGet) return fromGet;
+  } catch {
+    // list + fetch 폴백
+  }
+
+  const { blobs } = await list({ prefix: BLOB_FILENAME, limit: 10 });
   const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
 
   if (!blob) {
     return { ...DEFAULT_DB };
   }
 
-  const res = await fetch(blob.url);
-  if (!res.ok) {
-    return { ...DEFAULT_DB };
+  try {
+    const res = await fetch(blob.url);
+    if (res.ok) {
+      return (await res.json()) as Database;
+    }
+  } catch {
+    // private blob — get() 재시도
   }
 
-  return (await res.json()) as Database;
+  try {
+    const fromGet = await readBlobJson();
+    if (fromGet) return fromGet;
+  } catch {
+    // ignore
+  }
+
+  return { ...DEFAULT_DB };
 }
 
 async function writeToBlob(db: Database): Promise<void> {
   await put(BLOB_FILENAME, JSON.stringify(db, null, 2), {
-    access: "public",
+    access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
@@ -83,7 +113,7 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
 }
 
 async function readDb(): Promise<Database> {
-  if (isBlobStorageEnabled()) {
+  if (shouldUseBlobStorage()) {
     const blobDb = await readFromBlob();
     const hasBlobData =
       (blobDb.keywords?.length ?? 0) > 0 || (blobDb.mainPages?.length ?? 0) > 0;
@@ -92,7 +122,6 @@ async function readDb(): Promise<Database> {
       return normalizeDb(blobDb);
     }
 
-    // Blob 비어 있으면 배포에 포함된 keywords.json → Blob으로 1회 이전
     if (isServerlessDeploy()) {
       const fileDb = await readFromFile();
       const hasFileData =
@@ -110,8 +139,7 @@ async function readDb(): Promise<Database> {
 }
 
 async function writeDb(db: Database): Promise<void> {
-  assertStorageWritable();
-  if (isBlobStorageEnabled()) {
+  if (shouldUseBlobStorage()) {
     await writeToBlob(db);
     return;
   }
@@ -388,9 +416,7 @@ export async function markIndexNowSubmitted(id: string): Promise<void> {
 }
 
 export async function seedDefaultKeywords(): Promise<void> {
-  try {
-    assertStorageWritable();
-  } catch {
+  if (isServerlessDeploy() && !shouldUseBlobStorage()) {
     return;
   }
 

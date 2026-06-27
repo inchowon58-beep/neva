@@ -3,23 +3,27 @@ export function isServerlessDeploy(): boolean {
   return process.env.VERCEL === "1" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 }
 
-export function isBlobStorageEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+/** Blob Store 연결 여부 (토큰 또는 OIDC store id) */
+export function isBlobStorageConfigured(): boolean {
+  if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return true;
+  if (process.env.BLOB_STORE_ID?.trim()) return true;
+  return false;
+}
+
+/** Vercel 등 서버리스에서는 Blob 사용 (OIDC 포함) */
+export function shouldUseBlobStorage(): boolean {
+  if (isBlobStorageConfigured()) return true;
+  return isServerlessDeploy();
 }
 
 export class StorageNotConfiguredError extends Error {
-  constructor() {
+  constructor(detail?: string) {
     super(
-      "Vercel 배포 환경에서는 데이터 저장을 위해 Vercel Blob Storage 연결이 필요합니다. " +
-        "Vercel 대시보드 → 프로젝트 → Storage → Blob Store 생성 → Connect to Project 후 재배포해 주세요."
+      detail ??
+        "Vercel Blob Storage가 연결되지 않았거나 재배포가 필요합니다. " +
+          "Vercel → neva 프로젝트 → Storage → blob-neva 연결 확인 후 Deployments에서 Redeploy 해 주세요."
     );
     this.name = "StorageNotConfiguredError";
-  }
-}
-
-export function assertStorageWritable(): void {
-  if (isServerlessDeploy() && !isBlobStorageEnabled()) {
-    throw new StorageNotConfiguredError();
   }
 }
 
@@ -36,8 +40,36 @@ export function isReadOnlyFilesystemError(error: unknown): boolean {
 
 export function storageErrorMessage(error: unknown): string {
   if (error instanceof StorageNotConfiguredError) return error.message;
+
+  if (error instanceof Error) {
+    const msg = error.message;
+    if (
+      msg.includes("No blob credentials") ||
+      msg.includes("No token found") ||
+      msg.includes("BLOB_READ_WRITE_TOKEN") ||
+      msg.includes("BLOB_STORE_ID")
+    ) {
+      return new StorageNotConfiguredError(
+        "Blob 인증 정보를 찾을 수 없습니다. Storage 연결 후 반드시 Redeploy 해 주세요. " +
+          "(Vercel은 BLOB_STORE_ID + OIDC 또는 BLOB_READ_WRITE_TOKEN 을 사용합니다.)"
+      ).message;
+    }
+  }
+
   if (isReadOnlyFilesystemError(error)) {
     return new StorageNotConfiguredError().message;
   }
+
   return error instanceof Error ? error.message : "저장 실패";
+}
+
+/** @deprecated use isBlobStorageConfigured */
+export function isBlobStorageEnabled(): boolean {
+  return shouldUseBlobStorage();
+}
+
+export function assertStorageWritable(): void {
+  if (isServerlessDeploy() && !shouldUseBlobStorage()) {
+    throw new StorageNotConfiguredError();
+  }
 }
