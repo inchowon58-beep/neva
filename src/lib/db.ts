@@ -1,6 +1,11 @@
 import { put, list } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
+import {
+  assertStorageWritable,
+  isBlobStorageEnabled,
+  isServerlessDeploy,
+} from "@/lib/storage";
 import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink } from "@/types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -9,11 +14,25 @@ const BLOB_FILENAME = "keywords.json";
 
 const DEFAULT_DB: Database = { keywords: [], mainPages: [] };
 
-function isBlobStorageEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+function normalizeDb(db: Database): Database {
+  return {
+    keywords: (db.keywords ?? []).map((k) =>
+      normalizeEntry(k as KeywordEntry & { companyName?: string; pagePrompt?: string })
+    ),
+    mainPages: db.mainPages ?? [],
+  };
 }
 
 async function readFromFile(): Promise<Database> {
+  if (isServerlessDeploy()) {
+    try {
+      const raw = await fs.readFile(DATA_FILE, "utf-8");
+      return JSON.parse(raw) as Database;
+    } catch {
+      return { ...DEFAULT_DB };
+    }
+  }
+
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     const raw = await fs.readFile(DATA_FILE, "utf-8");
@@ -24,6 +43,7 @@ async function readFromFile(): Promise<Database> {
 }
 
 async function writeToFile(db: Database): Promise<void> {
+  assertStorageWritable();
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(DATA_FILE, JSON.stringify(db, null, 2), "utf-8");
 }
@@ -63,21 +83,34 @@ function normalizeEntry(entry: KeywordEntry & { companyName?: string; pagePrompt
 }
 
 async function readDb(): Promise<Database> {
-  let db: Database;
   if (isBlobStorageEnabled()) {
-    db = await readFromBlob();
-  } else {
-    db = await readFromFile();
+    const blobDb = await readFromBlob();
+    const hasBlobData =
+      (blobDb.keywords?.length ?? 0) > 0 || (blobDb.mainPages?.length ?? 0) > 0;
+
+    if (hasBlobData) {
+      return normalizeDb(blobDb);
+    }
+
+    // Blob 비어 있으면 배포에 포함된 keywords.json → Blob으로 1회 이전
+    if (isServerlessDeploy()) {
+      const fileDb = await readFromFile();
+      const hasFileData =
+        (fileDb.keywords?.length ?? 0) > 0 || (fileDb.mainPages?.length ?? 0) > 0;
+      if (hasFileData) {
+        await writeToBlob(fileDb);
+        return normalizeDb(fileDb);
+      }
+    }
+
+    return normalizeDb(blobDb);
   }
-  return {
-    keywords: (db.keywords ?? []).map((k) =>
-      normalizeEntry(k as KeywordEntry & { companyName?: string; pagePrompt?: string })
-    ),
-    mainPages: db.mainPages ?? [],
-  };
+
+  return normalizeDb(await readFromFile());
 }
 
 async function writeDb(db: Database): Promise<void> {
+  assertStorageWritable();
   if (isBlobStorageEnabled()) {
     await writeToBlob(db);
     return;
@@ -355,6 +388,12 @@ export async function markIndexNowSubmitted(id: string): Promise<void> {
 }
 
 export async function seedDefaultKeywords(): Promise<void> {
+  try {
+    assertStorageWritable();
+  } catch {
+    return;
+  }
+
   const db = await readDb();
   if (db.keywords.length > 0) return;
 

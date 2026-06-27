@@ -8,6 +8,7 @@ import {
 } from "@/lib/db";
 import { isAuthenticated } from "@/lib/auth";
 import { notifyKeywordIndexNow } from "@/lib/naver-indexnow";
+import { storageErrorMessage } from "@/lib/storage";
 
 export async function GET() {
   const authenticated = await isAuthenticated();
@@ -46,8 +47,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ keyword: entry, indexNow }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "등록 실패";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const message = storageErrorMessage(error);
+    const status = message.includes("Blob Storage") ? 503 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -83,8 +85,9 @@ export async function PUT(request: NextRequest) {
     });
     return NextResponse.json({ keyword: entry, indexNow });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "수정 실패";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const message = storageErrorMessage(error);
+    const status = message.includes("Blob Storage") ? 503 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -105,7 +108,8 @@ export async function DELETE(request: NextRequest) {
     await deleteKeyword(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "삭제 실패";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const message = storageErrorMessage(error);
+    const status = message.includes("Blob Storage") ? 503 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }

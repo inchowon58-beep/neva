@@ -8,6 +8,7 @@ import {
   isIndexNowConfigured,
   submitToNaverIndexNow,
 } from "@/lib/naver-indexnow";
+import { storageErrorMessage } from "@/lib/storage";
 
 interface ImportDefaults {
   companyName?: string;
@@ -112,7 +113,8 @@ export async function POST(request: NextRequest) {
       message: `${created.length}개 키워드 등록 완료`,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "일괄 등록 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const msg = storageErrorMessage(error);
+    const status = msg.includes("Blob Storage") ? 503 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
