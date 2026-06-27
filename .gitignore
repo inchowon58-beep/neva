@@ -28,9 +28,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (example only — .env.local is tracked per project setup)
 .env
-.env*.local
 
 # vercel
 .vercel
@@ -38,7 +37,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# local data
-/data/keywords.json
-/data/inquiries.json
