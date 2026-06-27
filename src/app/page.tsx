@@ -1,6 +1,7 @@
 import MainPageSwitcher from "@/components/MainPageSwitcher";
 import LandingPageList from "@/components/LandingPageList";
 import MainStatsBanner from "@/components/MainStatsBanner";
+import ServicePricingSection from "@/components/ServicePricingSection";
 import { MAIN_TITLE } from "@/lib/constants";
 import { getYesterdayPublishCount } from "@/lib/main-stats";
 import { getAllMainPages, getNaverShowcasesForMain } from "@/lib/db";
@@ -46,6 +47,8 @@ export default async function HomePage() {
         <h2 className="mb-8 text-2xl font-bold text-slate-900">추가된 랜딩페이지 정보</h2>
         <LandingPageList showcases={naverShowcases} />
       </section>
+
+      <ServicePricingSection />
     </main>
   );
 }
