@@ -1,5 +1,6 @@
 import ContentImage from "@/components/ContentImage";
 import LandingBottomBar from "@/components/LandingBottomBar";
+import SiteBusinessFooter from "@/components/SiteBusinessFooter";
 import LandingHeader from "@/components/LandingHeader";
 import LandingSectionBlock, {
   LandingGallery,
@@ -240,11 +241,8 @@ export default async function LandingPageView({
       <NearbyAreasSection entry={entry} />
 
       {/* Footer strip */}
-      <footer className="border-t border-[#e8e0d4] bg-[#2c2420] py-10 text-center text-sm text-[#a89888]">
-        <p className="font-serif text-[#c4a574]">{companyName}</p>
-        <p className="mt-2 text-xs uppercase tracking-widest">
-          © {new Date().getFullYear()} All Rights Reserved.
-        </p>
+      <footer className="border-t border-[#e8e0d4] bg-[#2c2420] px-4 py-10 text-center">
+        <SiteBusinessFooter variant="dark" />
       </footer>
 
       <LandingBottomBar

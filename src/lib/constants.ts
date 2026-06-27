@@ -16,6 +16,15 @@ export const CATTERY_PRESET = {
   phone: "0505-464-1004",
 } as const;
 
+/** 사이트 하단 사업자 정보 */
+export const BUSINESS_INFO = {
+  companyName: "주식회사 인포씨에스",
+  corpRegistration: "224-87-00683",
+  address: "경기도 부천시 길주로 246 2층",
+  mainSiteUrl: "http://www.dmcmusic.co.kr",
+  copyrightYear: 2017,
+} as const;
+
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("ko-KR", {
