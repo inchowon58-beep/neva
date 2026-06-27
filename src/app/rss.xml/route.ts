@@ -3,6 +3,8 @@ import { getSiteBaseUrl, landingPageUrl } from "@/lib/site-url";
 import { getDefaultContent, normalizeGeneratedContent } from "@/lib/gemini";
 import { createVariationSeed } from "@/lib/hero-copy";
 
+export const dynamic = "force-dynamic";
+
 function escapeXml(text: string): string {
   return text
     .replace(/&/g, "&amp;")

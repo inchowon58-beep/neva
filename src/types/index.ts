@@ -65,6 +65,9 @@ export interface KeywordInput {
   pagePrompt: string;
 }
 
+/** txt 일괄 등록 시 키워드 제외 공통 필드 */
+export type KeywordBulkDefaults = Omit<KeywordInput, "keyword">;
+
 export interface MainPageLink {
   id: string;
   keyword: string;

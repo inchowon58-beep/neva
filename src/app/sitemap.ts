@@ -1,6 +1,9 @@
 import { getAllKeywords } from "@/lib/db";
 import { getSiteBaseUrl, landingPageUrl } from "@/lib/site-url";
 
+/** 빌드 시 DB(Blob) 접근 없이 요청 시점에 생성 */
+export const dynamic = "force-dynamic";
+
 export default async function sitemap() {
   const baseUrl = getSiteBaseUrl();
   const keywords = await getAllKeywords();

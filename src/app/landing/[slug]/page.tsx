@@ -8,7 +8,7 @@ import { createVariationSeed } from "@/lib/hero-copy";
 import { getOrGenerateContent } from "@/lib/landing";
 import { getSampleContent, getSampleEntry, isSampleSlug } from "@/lib/sample";
 import { ensureSeedData } from "@/lib/seed";
-import { getSiteBaseUrl, landingPageUrl } from "@/lib/site-url";
+import { landingPageUrl } from "@/lib/site-url";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

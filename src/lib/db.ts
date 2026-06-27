@@ -1,7 +1,7 @@
 import { put, list } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
-import type { Database, GeneratedContent, KeywordEntry, KeywordInput, MainPageInput, MainPageLink } from "@/types";
+import type { Database, GeneratedContent, KeywordEntry, KeywordInput, KeywordBulkDefaults, MainPageInput, MainPageLink } from "@/types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "keywords.json");
@@ -207,7 +207,7 @@ export interface BulkCreateResult {
 /** txt 등 — 여러 키워드 한 번에 DB 저장 (단일 write) */
 export async function createKeywordsBulk(
   keywordLines: string[],
-  defaults: KeywordInput
+  defaults: KeywordBulkDefaults
 ): Promise<BulkCreateResult> {
   const db = await readDb();
   const now = new Date().toISOString();

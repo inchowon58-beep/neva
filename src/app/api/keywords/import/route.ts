@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createKeywordsBulk, markIndexNowSubmitted } from "@/lib/db";
 import { MAX_KEYWORD_IMPORT, parseKeywordTxt } from "@/lib/keyword-import";
-import type { KeywordInput } from "@/types";
+import type { KeywordBulkDefaults } from "@/types";
 import {
   buildLandingPageUrl,
   isIndexNowConfigured,
@@ -17,7 +17,7 @@ interface ImportDefaults {
   pagePrompt?: string;
 }
 
-function resolveDefaults(body: ImportDefaults): KeywordInput {
+function resolveDefaults(body: ImportDefaults): KeywordBulkDefaults {
   return {
     companyName: body.companyName?.trim() ?? "",
     imageUrl: body.imageUrl?.trim() ?? "",
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get("content-type") ?? "";
 
     let keywordLines: string[] = [];
-    let defaults: KeywordInput = {
+    let defaults: KeywordBulkDefaults = {
       companyName: "",
       imageUrl: "",
       homepageUrl: "",
